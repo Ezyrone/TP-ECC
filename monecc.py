@@ -1,11 +1,3 @@
-#!/usr/bin/env python3
-"""
-CLI tool to generate ECC key pairs, encrypt and decrypt messages
-for the teaching curve: y^2 = x^3 + 35x + 3 over F_101 with base
-point P = (2, 9).
-
-Only standard lib plus `cryptography` is used for AES/CBC.
-"""
 from __future__ import annotations
 
 import argparse
@@ -22,7 +14,7 @@ from cryptography.hazmat.primitives import padding
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 import hashlib
 
-# Curve parameters
+
 P_PRIME = 101
 P_A = 35
 P_B = 3
@@ -32,7 +24,7 @@ BASE_POINT = (2, 9)
 Point = Optional[Tuple[int, int]]
 
 
-# === ECC primitives ===
+
 def _mod_inv(x: int, p: int = P_PRIME) -> int:
     """Multiplicative inverse modulo p."""
     if x % p == 0:
