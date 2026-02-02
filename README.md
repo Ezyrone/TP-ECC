@@ -4,7 +4,7 @@ Implémentation en Python d'un mini-outil de chiffrement par courbe elliptique p
 sur la courbe `y^2 = x^3 + 35x + 3 (mod 101)` avec le point de base P = (2, 9).
 
 ## Auteurs
-- À compléter (nom en clair)
+- Jory GRZESZCZAK - M2 AL ESGI Grenoble
 
 ## Prérequis
 - Python 3.11+ (testé avec 3.14)
