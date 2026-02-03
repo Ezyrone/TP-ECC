@@ -1,9 +1,5 @@
 # TP MonECC
 
-Petit outil en ligne de commande pour chiffrer/déchiffrer avec une courbe elliptique « maison »,
-avec un relais AES/CBC pour la partie symétrique. La courbe utilisée est
-`y^2 = x^3 + 35x + 3 (mod 101)` et le point de base P = (2, 9).
-
 ## Auteur
 - Jory GRZESZCZAK — M2 AL ESGI Grenoble
 
