@@ -3,10 +3,8 @@ from __future__ import annotations
 import argparse
 import base64
 import json
-import os
 import secrets
 import sys
-from dataclasses import dataclass
 from typing import Optional, Tuple
 
 from cryptography.hazmat.backends import default_backend
@@ -24,16 +22,13 @@ BASE_POINT = (2, 9)
 Point = Optional[Tuple[int, int]]
 
 
-
 def _mod_inv(x: int, p: int = P_PRIME) -> int:
-    """Multiplicative inverse modulo p."""
     if x % p == 0:
         raise ZeroDivisionError("Inverse does not exist for zero.")
     return pow(x, p - 2, p)
 
 
 def _point_add(p1: Point, p2: Point) -> Point:
-    """Add two points on the curve."""
     if p1 is None:
         return p2
     if p2 is None:
@@ -43,10 +38,9 @@ def _point_add(p1: Point, p2: Point) -> Point:
     x2, y2 = p2
 
     if x1 == x2 and (y1 + y2) % P_PRIME == 0:
-        return None  # point at infinity
+        return None
 
     if p1 == p2:
-        # point doubling
         num = (3 * x1 * x1 + P_A) % P_PRIME
         den = _mod_inv((2 * y1) % P_PRIME)
     else:
@@ -60,7 +54,6 @@ def _point_add(p1: Point, p2: Point) -> Point:
 
 
 def scalar_mult(k: int, point: Point = BASE_POINT) -> Point:
-    """Compute k * point using double-and-add."""
     if k == 0 or point is None:
         return None
     result = None
@@ -74,7 +67,6 @@ def scalar_mult(k: int, point: Point = BASE_POINT) -> Point:
     return result
 
 
-# === Key file helpers ===
 def _b64_encode_str(text: str) -> str:
     return base64.b64encode(text.encode("ascii")).decode("ascii")
 
@@ -84,7 +76,6 @@ def _b64_decode_str(text: str) -> str:
 
 
 def write_key_files(base_name: str, k: int, public_point: Point) -> Tuple[str, str]:
-    """Create private and public key files; returns their paths."""
     priv_path = f"{base_name}.priv"
     pub_path = f"{base_name}.pub"
 
@@ -112,7 +103,7 @@ def read_private_key(path: str) -> int:
     try:
         k_str = _b64_decode_str(lines[1])
         k = int(k_str)
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         raise ValueError("Impossible de lire la clé privée.") from exc
     return k
 
@@ -126,17 +117,16 @@ def read_public_key(path: str) -> Tuple[int, int]:
         decoded = _b64_decode_str(lines[1])
         x_str, y_str = decoded.split(";")
         return int(x_str), int(y_str)
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         raise ValueError("Impossible de lire la clé publique.") from exc
 
 
-# === AES helpers ===
 def _derive_key_and_iv(shared_point: Point) -> Tuple[bytes, bytes]:
     if shared_point is None:
         raise ValueError("Le secret partagé est le point à l'infini.")
     x, y = shared_point
     material = f"{x}|{y}".encode("ascii")
-    digest = hashlib.sha256(material).digest()  # 32 bytes
+    digest = hashlib.sha256(material).digest()
     iv = digest[:16]
     key = digest[16:]
     return key, iv
@@ -159,24 +149,21 @@ def _aes_decrypt(key: bytes, iv: bytes, ciphertext: bytes) -> str:
     return data.decode("utf-8")
 
 
-# === High level operations ===
 def keygen(base_name: str, size: int) -> Tuple[str, str, int, Point]:
     if size < 1:
         raise ValueError("La taille de clé doit être >= 1.")
     public: Point = None
-    # regenerate until public point not at infinity
     while public is None:
-        k = secrets.randbelow(size) + 1  # 1..size
+        k = secrets.randbelow(size) + 1
         public = scalar_mult(k, BASE_POINT)
     priv_path, pub_path = write_key_files(base_name, k, public)
     return priv_path, pub_path, k, public
 
 
 def encrypt(public_point: Point, message: str) -> Tuple[str, Point]:
-    """Encrypt with ephemeral ECDH; returns payload string and ephemeral public."""
     if not message:
         raise ValueError("Le message à chiffrer est vide.")
-    eph_k = secrets.randbelow(1000) + 1  # small range OK for this toy curve
+    eph_k = secrets.randbelow(1000) + 1
     eph_pub = scalar_mult(eph_k, BASE_POINT)
     shared = scalar_mult(eph_k, public_point)
     key, iv = _derive_key_and_iv(shared)
@@ -194,26 +181,23 @@ def decrypt(private_k: int, payload_b64: str) -> str:
     try:
         decoded_json = base64.b64decode(payload_b64.encode("ascii")).decode("utf-8")
         payload = json.loads(decoded_json)
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         raise ValueError("Cryptogramme mal formé (base64/json).") from exc
 
     try:
-        r_point = tuple(payload["R"])  # type: ignore[arg-type]
+        r_point = tuple(payload["R"])
         iv = base64.b64decode(payload["iv"])
         ct = base64.b64decode(payload["ct"])
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         raise ValueError("Cryptogramme incomplet.") from exc
 
     shared = scalar_mult(private_k, r_point)
     key, derived_iv = _derive_key_and_iv(shared)
-    # We keep IV from payload to follow spec; derived_iv should match
     if iv != derived_iv:
-        # Not fatal, but signal mismatch early
         raise ValueError("IV ne correspond pas au secret dérivé (cryptogramme modifié ?).")
     return _aes_decrypt(key, iv, ct)
 
 
-# === CLI ===
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="monECC",
@@ -222,7 +206,6 @@ def build_parser() -> argparse.ArgumentParser:
     )
     subparsers = parser.add_subparsers(dest="command")
 
-    # help handled manually
     keygen_p = subparsers.add_parser("keygen", add_help=False)
     keygen_p.add_argument("-f", metavar="file", default="monECC", help="préfixe des clés (default: monECC)")
     keygen_p.add_argument("-s", metavar="size", type=int, default=1000, help="borne max aléa (default: 1000)")
@@ -287,7 +270,6 @@ def main(argv: list[str]) -> int:
         print_manual()
         return 0
 
-    # Accept common typos
     if argv[0] == "crytp":
         argv[0] = "crypt"
     if argv[0] == "decrytp":
@@ -319,7 +301,7 @@ def main(argv: list[str]) -> int:
         else:
             print_manual()
             return 0
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         print(f"Erreur : {exc}", file=sys.stderr)
         return 1
     return 0
