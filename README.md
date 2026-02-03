@@ -11,7 +11,7 @@ avec un relais AES/CBC pour la partie symétrique. La courbe utilisée est
 - Python 3.11+ (testé en 3.14)
 - La librairie `cryptography` (installée via `pip`)
 
-## Installation en deux minutes
+## Installation :
 ```bash
 python3 -m venv .venv
 . .venv/bin/activate
@@ -19,9 +19,6 @@ pip install -r requirements.txt
 ```
 
 ## Comment s’en servir ?
-- Voir le manuel :
-  ```bash
-  python3 monecc.py help
   ```
 - Générer une paire de clés (`monECC.pub` / `monECC.priv`) :
   ```bash
@@ -41,16 +38,11 @@ pip install -r requirements.txt
 
 Le cryptogramme produit est un bloc base64 qui embarque le point éphémère, l’IV et le texte chiffré.
 
-## Sous le capot
+
 - Courbe : `y^2 = x^3 + 35x + 3 (mod 101)`, base P = (2, 9)
 - Multiplication : double-and-add
 - Secret partagé : ECDH, haché SHA-256 → 16 octets d’IV + 16 octets de clé AES
 - Chiffrement : AES-128/CBC + PKCS7
 
-## Pour essayer vite fait
-```bash
-. .venv/bin/activate
-python3 monecc.py keygen -f demo
-cipher=$(python3 monecc.py crypt demo.pub "hello")
-python3 monecc.py decrypt demo.priv "$cipher"
+
 ```
