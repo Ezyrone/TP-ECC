@@ -126,9 +126,9 @@ def _derive_key_and_iv(shared_point: Point) -> Tuple[bytes, bytes]:
         raise ValueError("Le secret partagé est le point à l'infini.")
     x, y = shared_point
     material = f"{x}|{y}".encode("ascii")
-    digest = hashlib.sha256(material).digest()
-    iv = digest[:16]
-    key = digest[16:]
+    digest_hex = hashlib.sha256(material).hexdigest()
+    iv = digest_hex[:16].encode("ascii")
+    key = digest_hex[-16:].encode("ascii")
     return key, iv
 
 
@@ -290,7 +290,6 @@ def main(argv: list[str]) -> int:
             message = _read_input_text(args.text, args.i)
             payload, eph_pub = encrypt(public, message)
             _write_output(payload, args.o)
-            print(f"[debug] Point éphémère R = {eph_pub}", file=sys.stderr)
         elif args.command == "decrypt":
             if not args.keyfile:
                 raise ValueError("Fichier de clé privée manquant.")
