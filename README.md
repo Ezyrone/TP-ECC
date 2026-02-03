@@ -1,63 +1,56 @@
-# TP MonECC (ECC + AES/CBC)
+# TP MonECC
 
-Implémentation en Python d'un mini-outil de chiffrement par courbe elliptique pédagogique
-sur la courbe `y^2 = x^3 + 35x + 3 (mod 101)` avec le point de base P = (2, 9).
+Petit outil en ligne de commande pour chiffrer/déchiffrer avec une courbe elliptique « maison »,
+avec un relais AES/CBC pour la partie symétrique. La courbe utilisée est
+`y^2 = x^3 + 35x + 3 (mod 101)` et le point de base P = (2, 9).
 
-## Auteurs
-- Jory GRZESZCZAK - M2 AL ESGI Grenoble
+## Auteur
+- Jory GRZESZCZAK — M2 AL ESGI Grenoble
 
-## Prérequis
-- Python 3.11+ (testé avec 3.14)
-- `cryptography` (installé via `pip`)
+## Avant de commencer
+- Python 3.11+ (testé en 3.14)
+- La librairie `cryptography` (installée via `pip`)
 
-## Installation rapide
+## Installation en deux minutes
 ```bash
 python3 -m venv .venv
 . .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-## Utilisation
-Affichage de l'aide :
-```bash
-python3 monecc.py help
-```
+## Comment s’en servir ?
+- Voir le manuel :
+  ```bash
+  python3 monecc.py help
+  ```
+- Générer une paire de clés (`monECC.pub` / `monECC.priv`) :
+  ```bash
+  python3 monecc.py keygen
+  # options : -f <prefix> (nom des fichiers) ; -s <borne> (aléa, défaut 1000)
+  ```
+- Chiffrer avec une clé publique :
+  ```bash
+  python3 monecc.py crypt monECC.pub "message en clair"
+  # ou python3 monecc.py crypt monECC.pub -i message.txt -o sortie.enc
+  ```
+- Déchiffrer avec la clé privée correspondante :
+  ```bash
+  python3 monecc.py decrypt monECC.priv "$(python3 monecc.py crypt monECC.pub 'bonjour')"
+  # ou python3 monecc.py decrypt monECC.priv -i sortie.enc -o clair.txt
+  ```
 
-Génération d'une paire de clés (fichiers `monECC.pub` et `monECC.priv`) :
-```bash
-python3 monecc.py keygen
-# options : -f <prefix> pour renommer, -s <borne> pour changer la plage (défaut 1000)
-```
+Le cryptogramme produit est un bloc base64 qui embarque le point éphémère, l’IV et le texte chiffré.
 
-Chiffrement avec une clé publique :
-```bash
-python3 monecc.py crypt monECC.pub "message en clair"
-# ou python3 monecc.py crypt monECC.pub -i message.txt -o sortie.enc
-```
+## Sous le capot
+- Courbe : `y^2 = x^3 + 35x + 3 (mod 101)`, base P = (2, 9)
+- Multiplication : double-and-add
+- Secret partagé : ECDH, haché SHA-256 → 16 octets d’IV + 16 octets de clé AES
+- Chiffrement : AES-128/CBC + PKCS7
 
-Déchiffrement avec la clé privée correspondante :
-```bash
-python3 monecc.py decrypt monECC.priv "$(python3 monecc.py crypt monECC.pub 'bonjour')"
-# ou python3 monecc.py decrypt monECC.priv -i sortie.enc -o clair.txt
-```
-
-Le cryptogramme est un bloc base64 contenant le point éphémère, l'IV et le texte chiffré.
-
-## Détails techniques
-- Courbe : `y^2 = x^3 + 35x + 3 (mod 101)`
-- Base : P = (2, 9)
-- Multiplication de point : double-and-add
-- Secret partagé : ECDH avec clé éphémère (crypt) ou privée (decrypt), haché SHA-256
-- Symétrique : AES-128/CBC avec PKCS7 (IV = 16 premiers octets du hash, clé = 16 derniers)
-
-## Arborescence
-- `monecc.py` : script CLI principal
-- `requirements.txt` : dépendances Python
-
-## Tests rapides
+## Pour essayer vite fait
 ```bash
 . .venv/bin/activate
-python monecc.py keygen -f demo
-cipher=$(python monecc.py crypt demo.pub "hello")
-python monecc.py decrypt demo.priv "$cipher"
+python3 monecc.py keygen -f demo
+cipher=$(python3 monecc.py crypt demo.pub "hello")
+python3 monecc.py decrypt demo.priv "$cipher"
 ```
